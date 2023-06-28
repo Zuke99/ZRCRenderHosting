@@ -17,12 +17,24 @@ const cloudinary=require('cloudinary')
 
 server.use(express.static(path.join(__dirname,'dist')))
 
+// const db = mysql.createConnection({
+//   host     : 'sql12.freemysqlhosting.net',
+//   user     : 'sql12628553',
+//   password : 'zLJ6cKrMxy',
+//   database : 'sql12628553',
+// });
+
+
+//Local DB
 const db = mysql.createConnection({
-  host     : 'sql12.freemysqlhosting.net',
-  user     : 'sql12628553',
-  password : 'zLJ6cKrMxy',
+  host     : 'localhost',
+  user     : 'root',
+  password : 'password',
   database : 'sql12628553',
+  port:3307
 });
+
+
 const options = {
   timeZone: 'Asia/Kolkata',
   year: 'numeric',
@@ -753,8 +765,6 @@ console.log("after conversion" ,mysqlDateTime3)
     mysqlDateTime2 +
     "',zrc_valid_upto='" +
     mysqlDateTime3 +
-    "',file='" +
-    req.body.file +
     "',drive_file='"+
     req.body.drive_file +
     "'  WHERE serial=" +
