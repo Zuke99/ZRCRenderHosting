@@ -25,7 +25,7 @@ const db = mysql.createConnection({
 });
 
 
-//Local DB
+
 // const db = mysql.createConnection({
 //   host     : 'localhost',
 //   user     : 'root',
@@ -512,8 +512,10 @@ server.get("/api/zrc/:ph_number", (req, res) => {
 
 //GET BY PRODUCT NAME
 server.get("/api/zrc/product/:product_name", (req, res) => {
-  console.log("Get By product Name called")
-  var product_name = req.params.product_name;
+   const decodedParameter = decodeURIComponent(req.params.product_name);
+
+  console.log("Get By product Name called", decodedParameter)
+  var product_name = decodedParameter;
   var sql = "SELECT * FROM zrc_table WHERE product_name='" + product_name+"'";
   db.query(sql, function (error, result) {
     if (error) {
