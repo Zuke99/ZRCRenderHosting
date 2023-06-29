@@ -823,12 +823,13 @@ server.get("/api/zrc/tracker/zrcfyload",(req,res) => {
   })
 })
 
-server.get("/api/zrc/expiring/expirydate",(req,res) => {
+server.get("/api/zrc/expiring/expirydate/:month",(req,res) => {
   console.log("expiring ZRC Function Called")
-
+let month=req.params.month
 let todayDate=new Date()
 let thirtyDays=new Date();
-thirtyDays.setDate(todayDate.getDate()+30)
+console.log("months from angular" , month)
+thirtyDays.setDate(todayDate.getDate()+(month*31))
 
   const datetime1 = todayDate;
 // Create a new Date object from the datetime string
@@ -855,7 +856,7 @@ const mysqlDateTime2= `${year2}-${month2.toString().padStart(2, "0")}-${day2.toS
 
 
   console.log("today date =", mysqlDateTime1)
-  console.log("30 days from now= ",mysqlDateTime2)
+  console.log(month+" months from now= ",mysqlDateTime2)
   let sql=`SELECT * FROM zrc_table WHERE zrc_valid_upto <  '${mysqlDateTime2}' AND zrc_valid_upto > '${mysqlDateTime1}';`
   db.query(sql,(error,result) => {
     if(error){
@@ -876,6 +877,29 @@ server.get("/api/zrc/getbyserial/:serialno",(req,res) =>{
       res.send({status: true , data : result})
     }
   })
+})
+
+
+//get zrc reports 
+server.get("/api/zrctable/:zrcfy",(req,res) => {
+  //const decodedParameter = decodeURIComponent(req.params.zrc_fy);
+  console.log("get all ZRC report from zrc_table called")
+  let zrc_fy=req.params.zrcfy;
+  let sql=``;
+  if(zrc_fy=='Show All'){
+    sql=`SELECT * FROM zrc_table`
+  } else {
+    sql=`SELECT * FROM zrc_table WHERE zrc_fy = '${zrc_fy}'`
+  }
+
+  db.query(sql,(error,result) => {
+    if(error){
+      console.log("Error getting zrc info for reports ",error)
+    } else {
+      res.send({status : true, data : result})
+    }
+  })
+
 })
 
 
