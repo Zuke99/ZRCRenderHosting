@@ -823,6 +823,61 @@ server.get("/api/zrc/tracker/zrcfyload",(req,res) => {
   })
 })
 
+server.get("/api/zrc/expiring/expirydate",(req,res) => {
+  console.log("expiring ZRC Function Called")
+
+let todayDate=new Date()
+let thirtyDays=new Date();
+thirtyDays.setDate(todayDate.getDate()+30)
+
+  const datetime1 = todayDate;
+// Create a new Date object from the datetime string
+const dateObj1 = new Date(datetime1);
+// Get the individual components of the date
+const year1 = dateObj1.getFullYear();
+const month1 = dateObj1.getMonth() + 1; // Months are zero-based, so add 1
+const day1 = dateObj1.getDate();
+// Format the DateTime string in MySQL format
+const mysqlDateTime1 = `${year1}-${month1.toString().padStart(2, "0")}-${day1.toString().padStart(2, "0")} 00:00:00`;
+
+
+const datetime2 = thirtyDays;
+// Create a new Date object from the datetime string
+const dateObj2 = new Date(datetime2);
+// Increase the date by 1 day
+
+// Get the individual components of the date
+const year2 = dateObj2.getFullYear();
+const month2 = dateObj2.getMonth() + 1; // Months are zero-based, so add 1
+const day2 = dateObj2.getDate();
+// Format the DateTime string in MySQL format
+const mysqlDateTime2= `${year2}-${month2.toString().padStart(2, "0")}-${day2.toString().padStart(2, "0")} 00:00:00`;
+
+
+  console.log("today date =", mysqlDateTime1)
+  console.log("30 days from now= ",mysqlDateTime2)
+  let sql=`SELECT * FROM zrc_table WHERE zrc_valid_upto <  '${mysqlDateTime2}' AND zrc_valid_upto > '${mysqlDateTime1}';`
+  db.query(sql,(error,result) => {
+    if(error){
+      console.log("error getting zrc valid upto results from db",error)
+    } else {
+      res.send({status : true , data : result})
+    }
+  }) 
+})
+
+server.get("/api/zrc/getbyserial/:serialno",(req,res) =>{
+
+  let sql=`SELECT * FROM zrc_table WHERE serial= ${req.params.serialno};`
+  db.query(sql,(error,result) => {
+    if(error){
+      console.log("error getting productname by serial from db",error)
+    } else {
+      res.send({status: true , data : result})
+    }
+  })
+})
+
 
 
 server.get('*', (req, res) => {
