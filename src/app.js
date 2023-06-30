@@ -466,6 +466,21 @@ db.query(sql,function(error,result){
 })
 })
 
+//GET Indents By Serial
+
+server.get("/api/zrc/indents/getindentbyserial/:serial",(req,res) => {
+  console.log("Get INdent By Serial Called" , req.params.serial)
+  let sql=`SELECT * FROM indents WHERE serial = ${req.params.serial}`
+  db.query(sql,(error,result) => {
+    if(error){
+      console.log("error getting indent by serial details from db", error)
+    } else {
+      res.send({status : true, data : result})
+    }
+  })
+  
+})
+
 //GET ALL DATA
 server.get("/api/zrc", (req, res) => {
   console.log("Get all ZRC s called")
@@ -510,7 +525,7 @@ server.get("/api/zrc/:ph_number", (req, res) => {
   });
 });
 
-//GET BY PRODUCT NAME
+//GET BY PRODUCT NAME in HOME
 server.get("/api/zrc/product/:product_name", (req, res) => {
    const decodedParameter = decodeURIComponent(req.params.product_name);
 
@@ -525,6 +540,60 @@ server.get("/api/zrc/product/:product_name", (req, res) => {
     }
   });
 });
+
+//GET BY PRODUCT NAME in Indent Reports
+server.get("/api/zrc/indentproduct/:product_name", (req, res) => {
+  const decodedParameter = decodeURIComponent(req.params.product_name);
+
+ console.log("Get By Indents product Name called", decodedParameter)
+ var product_name = decodedParameter;
+ var sql = "SELECT * FROM indents WHERE product_name='" + product_name+"' ORDER BY date_of_indent DESC";
+ db.query(sql, function (error, result) {
+   if (error) {
+     console.log("Error Connecting to DB(GET BY PRODUCT NAME)",error);
+   } else {
+     res.send({ status: true, data: result });
+   }
+ });
+});
+
+//GET BY INDENT RANGE
+server.get("/api/zrc/indent/getindentrange",(req,res) => {
+  console.log("indent range function called "+ req.query.indent_date_from + " and "+  req.query.indent_date_upto)
+  const datetime1 = req.query.indent_date_from;
+  // Create a new Date object from the datetime string
+  const dateObj1 = new Date(datetime1);
+  // Get the individual components of the date
+  const year1 = dateObj1.getFullYear();
+  const month1 = dateObj1.getMonth() + 1; // Months are zero-based, so add 1
+  const day1 = dateObj1.getDate();
+  // Format the DateTime string in MySQL format
+  const mysqlDateTime1 = `${year1}-${month1.toString().padStart(2, "0")}-${day1.toString().padStart(2, "0")} 00:00:00`;
+
+
+
+
+
+
+  const datetime2 =  req.query.indent_date_upto;
+  // Create a new Date object from the datetime string
+  const dateObj2 = new Date(datetime2);
+  // Get the individual components of the date
+  const year2 = dateObj2.getFullYear();
+  const month2 = dateObj2.getMonth() + 1; // Months are zero-based, so add 1
+  const day2 = dateObj2.getDate();
+  // Format the DateTime string in MySQL format
+  const mysqlDateTime2 = `${year2}-${month2.toString().padStart(2, "0")}-${day2.toString().padStart(2, "0")} 00:00:00`;
+
+    let sql=`SELECT * FROM indents WHERE date_of_indent >= '${mysqlDateTime1}' AND date_of_indent <= '${mysqlDateTime2}'`
+    db.query(sql,(error,result) => {
+      if(error){
+        console.log("error getting indent range from db", error)
+      } else {
+        res.send({status : true , data : result})
+      }
+    })
+})
 
 
 //downloadFile
@@ -762,7 +831,7 @@ console.log("after conversion" ,mysqlDateTime3)
     "',qty='" +
     req.body.qty +
     "',Balance='"+
-    req.body.qty +
+    req.body.Balance +
     "',zrc_valid_from='" +
     mysqlDateTime2 +
     "',zrc_valid_upto='" +
@@ -782,13 +851,28 @@ console.log("after conversion" ,mysqlDateTime3)
   });
 });
 
-
+//For Search Bar in Home page
 server.get("/api/zrc/searchvalues/:searchTerm",(req,res)=>{
   console.log("SEARCH NEW CALLED")
   const searchTerm=req.params.searchTerm;
 
   console.log("term"+searchTerm);
-  const query=`SELECT ph_number,product_name FROM zrc_table WHERE CAST(ph_number AS CHAR) LIKE '%${searchTerm}%' OR product_name LIKE '%${searchTerm}%' LIMIT 10;`
+  const query=`SELECT DISTINCT ph_number,product_name FROM zrc_table WHERE CAST(ph_number AS CHAR) LIKE '%${searchTerm}%' OR product_name LIKE '%${searchTerm}%' LIMIT 10;`
+  db.query(query,(err,results)=>{
+    if(err) throw err;
+    console.log(results);
+    res.json(results);
+  })
+})
+
+
+//For SearchBar in Indent Reports Page
+server.get("/api/zrc/indentsearchvalues/:searchTerm",(req,res)=>{
+  console.log("SEARCH NEW CALLED")
+  const searchTerm=req.params.searchTerm;
+
+  console.log("term"+searchTerm);
+  const query=`SELECT DISTINCT ph_number,product_name FROM indents WHERE CAST(ph_number AS CHAR) LIKE '%${searchTerm}%' OR product_name LIKE '%${searchTerm}%' ;`
   db.query(query,(err,results)=>{
     if(err) throw err;
     console.log(results);
