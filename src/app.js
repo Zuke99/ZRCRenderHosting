@@ -254,7 +254,9 @@ server.post("/api/zrc/addindent",(req,res)=>{
     date_of_indent:mysqlDateTime6,
     zrc_fy:req.body.zrc_fy,
     indents_sl:req.body.indents_sl,
-    extra_remarks:req.body.extra_remarks
+    extra_remarks:req.body.extra_remarks,
+    po_status:req.body.po_status,
+    supply_status:req.body.supply_status
   }
   let sql;
   if(new_date.getYear()+1900 < 1100){
@@ -288,7 +290,10 @@ server.post("/api/zrc/addindent",(req,res)=>{
     zrc_serial:req.body.zrc_serial,
     date_of_indent:mysqlDateTime6,
     zrc_fy:req.body.zrc_fy,
-    indents_sl:req.body.indents_sl
+    indents_sl:req.body.indents_sl,
+    extra_remarks:req.body.extra_remarks,
+    po_status:req.body.po_status,
+    supply_status:req.body.supply_status
    }
     
    console.log("null valid date by sql",new_date)
@@ -305,7 +310,7 @@ server.post("/api/zrc/addindent",(req,res)=>{
   })
 })
 
-//Create the Records
+//Create the Records add zrc
 server.post("/api/zrc/add", (req, res) => {
   console.log("ZRC ADD Called")
 
@@ -322,6 +327,8 @@ server.post("/api/zrc/add", (req, res) => {
 
     let newPhNumber=req.body.ph_number;
     let newQty=req.body.qty;
+    let po_status=1;
+    let supply_status=1;
 
     //converting string to suitable SQL Date Format
     console.log("from angular ",req.body.zrc_date)
@@ -362,7 +369,9 @@ server.post("/api/zrc/add", (req, res) => {
       zrc_valid_upto: isoDate3,
       file: req.file.filename,
       Balance:req.body.qty,
-      drive_file:req.body.drive_file
+      drive_file:req.body.drive_file,
+      po_status:po_status,
+      supply_status:supply_status
     };
     values=details
     let sql = "INSERT INTO zrc_table SET ?";
@@ -584,8 +593,27 @@ server.get("/api/zrc/indent/getindentrange",(req,res) => {
   const day2 = dateObj2.getDate();
   // Format the DateTime string in MySQL format
   const mysqlDateTime2 = `${year2}-${month2.toString().padStart(2, "0")}-${day2.toString().padStart(2, "0")} 00:00:00`;
+  let po_status=req.query.po_status
+  let supply_status=req.query.supply_status
+  if(po_status == 1){
+    po_status= 0
+  } else {
+    po_status = 1
+  }
 
-    let sql=`SELECT * FROM indents WHERE date_of_indent >= '${mysqlDateTime1}' AND date_of_indent <= '${mysqlDateTime2}'`
+  if(supply_status==1){
+    supply_status = 0
+  } else {
+    supply_status = 1
+  }
+  console.log(po_status,supply_status)
+  let sql;
+    if(po_status == 1 && supply_status == 1){
+      sql=`SELECT * FROM indents WHERE date_of_indent >= '${mysqlDateTime1}' AND date_of_indent <= '${mysqlDateTime2}'`
+    } else {
+    sql=`SELECT * FROM indents WHERE date_of_indent >= '${mysqlDateTime1}' AND date_of_indent <= '${mysqlDateTime2}' 
+    AND supply_status=${supply_status} AND po_status= ${po_status}` 
+    }
     db.query(sql,(error,result) => {
       if(error){
         console.log("error getting indent range from db", error)
@@ -595,6 +623,31 @@ server.get("/api/zrc/indent/getindentrange",(req,res) => {
     })
 })
 
+//Update Indent Report checkbox
+server.put("/api/zrc/indentreport/status",(req,res) => {
+  console.log("Indent Report Checkbox Update Called")
+  let sql=`UPDATE indents SET po_status = ${req.body.po_status} , supply_status = ${req.body.supply_status} WHERE serial = ${req.body.serial}`
+  db.query(sql,(error,result) => {
+    if(error){
+      console.log("error connecting to db for indent update")
+    } else {
+      res.send({status : true, message:"Successfull updated ZRC Indent "+result})
+    }
+  })
+})
+
+//Update ZRC PO/Supply status
+server.put("/api/zrc/update/updatestatus/:serial",(req,res) => {
+  console.log("UPDATE PO / SUPPLY IN ZRC CALLED")
+  let sql=`UPDATE zrc_table SET po_status = ${req.body.po_status} , supply_status = ${req.body.supply_status} WHERE serial = ${req.params.serial}`
+  db.query(sql, (error , result) => {
+    if(error){
+      console.log("Error connecting to db for ZRC PO/SUPPLY status update")
+    } else {
+      res.send({status : true , message : "ZRC updated successfully PO/SUPPLY " + result})
+    }
+  })
+})
 
 //downloadFile
 
@@ -681,6 +734,10 @@ server.put("/api/zrc/balanceUpdate/:serial",(req,res)=>{
   req.body.zrc_balance+
   "',qty_indented='"+
   req.body.qty_indented+
+  "',supply_status='"+
+  req.body.supply_status+
+  "',po_status='"+
+  req.body.po_status+
    "'WHERE serial="+req.params.serial;
   let a = db.query(sql, (error, result) => {
     if (error) {
