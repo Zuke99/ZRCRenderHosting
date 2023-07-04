@@ -80,6 +80,68 @@ dotenv.config({
   path:"./data/config.env",
 })
 
+//User Registration
+
+server.post("/api/zrc/register/registeruser",(req,res) => {
+  console.log("Register user Called")
+  let userData={
+    username:req.body.username,
+    password:req.body.password
+  }
+  let sql="INSERT INTO users SET?"
+  db.query(sql,userData,(error, result) => {
+    if(error){
+      console.log("Error adding user to db" , error)
+    } else {
+      res.send({status : true , data : result})
+    }
+  })
+})
+
+//LOGIN API
+
+server.post("/api/zrc/login/loginuser",(req,res) => {
+  console.log("Login Called")
+  let userData={
+    username:req.body.username,
+    password:req.body.password
+  }
+  let sql=`SELECT * FROM users WHERE username = '${req.body.username}';`
+  db.query(sql,userData,(error , result) => {
+    if(error){
+      console.log("error connecting to db for user login" , error)
+    } else if (!result[0]) {
+      console.log("no user with username ",req.body.username)
+      res.send({status : false , message : "No user with username " + req.body.username})
+    } else if(result[0].password != req.body.password){
+      res.send({status : false , message : "Wrong password for user " + req.body.username})
+     // res.send({data:result})
+    }
+    else {
+      console.log("logged in")
+      res.send({status : true , message :"User Logged In Successfully", result})
+    }
+  })
+})
+
+//ADD MASTER LISt
+
+server.post("/api/zrc/master/addmaster",(req,res) => {
+  console.log("Register user Called")
+  let userData={
+    product_name:req.body.product_name,
+    ph_number:req.body.ph_number
+  }
+  let sql="INSERT INTO zrc_master_list2 SET?"
+  db.query(sql,userData,(error, result) => {
+    if(error){
+      console.log("Error adding master list to db" , error)
+    } else {
+      res.send({status : true , data : result})
+    }
+  })
+})
+
 //file Handling
 var storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -917,7 +979,7 @@ server.get("/api/zrc/searchvalues/:searchTerm",(req,res)=>{
   const query=`SELECT DISTINCT ph_number,product_name FROM zrc_table WHERE CAST(ph_number AS CHAR) LIKE '%${searchTerm}%' OR product_name LIKE '%${searchTerm}%' LIMIT 10;`
   db.query(query,(err,results)=>{
     if(err) throw err;
-    console.log(results);
+  console.log("success");
     res.json(results);
   })
 })
@@ -932,7 +994,31 @@ server.get("/api/zrc/indentsearchvalues/:searchTerm",(req,res)=>{
   const query=`SELECT DISTINCT ph_number,product_name FROM indents WHERE CAST(ph_number AS CHAR) LIKE '%${searchTerm}%' OR product_name LIKE '%${searchTerm}%' ;`
   db.query(query,(err,results)=>{
     if(err) throw err;
-    console.log(results);
+    console.log("success");
+    res.json(results);
+  })
+})
+
+//Search Suggestion in ADD ZRC
+server.get("/api/zrc/master/searchvalues/:searchTerm",(req,res)=>{
+  console.log("Master SEARCH NEW CALLED")
+  const searchTerm=req.params.searchTerm;
+
+  console.log("term"+searchTerm);
+  const query=`SELECT ph_number, product_name
+  FROM zrc_master_list
+  WHERE CAST(ph_number AS CHAR) LIKE '%${searchTerm}%'
+     OR product_name LIKE '%${searchTerm}%'
+  UNION
+  SELECT ph_number, product_name
+  FROM zrc_master_list2
+  WHERE CAST(ph_number AS CHAR) LIKE '%${searchTerm}%'
+     OR product_name LIKE '%${searchTerm}%';`
+  
+
+  db.query(query,(err,results)=>{
+    if(err) throw err;
+    console.log("search success");
     res.json(results);
   })
 })
