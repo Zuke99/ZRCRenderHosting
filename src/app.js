@@ -92,7 +92,7 @@ const decodeToken = (token) => {
 const masterAdminMiddleware = (req, res, next) => {
   // Check if the user has the 'MasterAdmin' role
   const token= req.headers.authorization
-  console.log("token value from headers",token)
+//  console.log("token value from headers",token)
   const decodedToken = decodeToken(token)
   const role=decodedToken.role;
   console.log("role is " ,role)
@@ -107,7 +107,7 @@ const masterAdminMiddleware = (req, res, next) => {
 const contributorMiddleware = (req, res, next) => {
   // Check if the user has the 'Contributor' role
   const token= req.headers.authorization
-  console.log("token value from headers",token)
+ // console.log("token value from headers",token)
   const decodedToken = decodeToken(token)
   const role=decodedToken.role;
   console.log("role is " ,role)
@@ -121,7 +121,7 @@ const contributorMiddleware = (req, res, next) => {
 // Middleware for 'User' role
 const userMiddleware = (req, res, next) => {
   const token= req.headers.authorization
-  console.log("token value from headers",token)
+  //console.log("token value from headers",token)
   const decodedToken = decodeToken(token)
   const role=decodedToken.role;
   console.log("role is " ,role)
@@ -280,7 +280,78 @@ server.get("/",(req,res)=>{
   res.send({status:true , message: "API WORKING"})
 })
 
-//add to IndentTable
+
+//add to IndentTable USER)
+server.post("/api/zrc/indent/userindent", [userMiddleware], (req,res) => {
+  console.log("ADD UserIndent Table Called")
+
+  const datetime1 = req.body.zrc_valid_from;
+  // Create a new Date object from the datetime string
+  const dateObj1 = new Date(datetime1);
+  // Get the individual components of the date
+  const year1 = dateObj1.getFullYear();
+  const month1 = dateObj1.getMonth() + 1; // Months are zero-based, so add 1
+  const day1 = dateObj1.getDate();
+  // Format the DateTime string in MySQL format
+  const mysqlDateTime1 = `${year1}-${month1.toString().padStart(2, "0")}-${day1.toString().padStart(2, "0")} 00:00:00`;
+
+
+
+
+
+
+  const datetime2 = req.body.zrc_valid_upto;
+  // Create a new Date object from the datetime string
+  const dateObj2 = new Date(datetime2);
+  // Get the individual components of the date
+  const year2 = dateObj2.getFullYear();
+  const month2 = dateObj2.getMonth() + 1; // Months are zero-based, so add 1
+  const day2 = dateObj2.getDate();
+  // Format the DateTime string in MySQL format
+  const mysqlDateTime2 = `${year2}-${month2.toString().padStart(2, "0")}-${day2.toString().padStart(2, "0")} 00:00:00`;
+
+
+
+
+  const datetime6 = req.body.date_of_indent;
+  // Create a new Date object from the datetime string
+  const dateObj6 = new Date(datetime6);
+  // Get the individual components of the date
+  const year6 = dateObj6.getFullYear();
+  const month6 = dateObj6.getMonth() + 1; // Months are zero-based, so add 1
+  const day6 = dateObj6.getDate();
+  // Format the DateTime string in MySQL format
+  const mysqlDateTime6 = `${year6}-${month6.toString().padStart(2, "0")}-${day6.toString().padStart(2, "0")} 00:00:00`;
+
+  let details={
+    ph_number:req.body.ph_number,
+    product_name:req.body.product_name,
+    balance_available:req.body.balance_available,
+    qty_required:req.body.qty_required,
+    zrc_number:req.body.zrc_number,
+    zrc_valid_from:mysqlDateTime1,
+    zrc_valid_upto:mysqlDateTime2,
+    zrc_serial:req.body.zrc_serial,
+    date_of_indent:mysqlDateTime6,
+    user_name:req.body.user_name,
+    approval_status:req.body.status,
+    acknowledge:req.body.acknowledge
+  }
+  let sql="INSERT INTO user_indents SET ?";
+  db.query(sql,details, (error, result) => {
+    if(error){
+      res.send({status : false , message : "Error "})
+    } else {
+      res.send({status: true, message : "Indent placed Successfully"})
+    }
+  })
+
+
+
+
+})
+
+//add to IndentTable (ADMIN/CONTRIBUTOR)
 server.post("/api/zrc/addindent",[contributorMiddleware],(req,res)=>{
   console.log("ADD Indent Table Called")
 
@@ -475,6 +546,64 @@ server.post("/api/zrc/addindent",[contributorMiddleware],(req,res)=>{
     }
   })
 })
+//Get Indents (USER) for Home Screen
+server.get("/api/zrc/indents/getuserindents/:userName",[userMiddleware],(req, res) => {
+  console.log("get Indents USer Called", req.params.userName)
+  let i=0;
+  let sql=`SELECT * FROM user_indents WHERE user_name = '${req.params.userName}' AND acknowledge= ${0}`
+  db.query(sql, (error, result) => {
+    if(error){
+      res.send({status : false, message : "error"})
+    } else {
+      res.send({status: true, data : result})
+    }
+  })
+})
+
+//GET ALL INDENTS FOR HOMESCREEN ADMIN AND CONTRIBUTOR
+server.get("/api/zrc/indents/getalluserindents",[contributorMiddleware],(req, res) => {
+  console.log("get Indents USer Called")
+  let i=0;
+  let sql=`SELECT * FROM user_indents WHERE approval_status = 'Pending'`
+  db.query(sql, (error, result) => {
+    if(error){
+      res.send({status : false, message : "error"})
+    } else {
+      res.send({status: true, data : result})
+    }
+  })
+})
+
+//Rejecting user INdent
+
+
+//UPDATING USER INDENT STATUS
+server.put("/api/zrc/userindent/updatestatus/:serial",(req, res) =>{
+  console.log("Update status of user Indent Called")
+  let sql=`UPDATE user_indents SET approval_status = '${req.body.approval_status}' , executive = '${req.body.executive}'
+  WHERE serial = ${req.params.serial}`
+  db.query(sql, (error, result) => {
+    if(error){
+      res.send({status: false, message : "Error updating from DB"})
+    } else {
+      res.send({status : true, message: "Success in updating userindent"})
+    }
+  })
+})
+
+//Mark As REad (USER) Homescreen
+server.put("/api/zrc/userindent/update/markasread/:serial",(req, res) =>{
+  console.log("Mark as Read called")
+  let sql=`UPDATE user_indents SET acknowledge = ${req.body.acknowledge} WHERE serial = ${req.params.serial};`
+  db.query(sql, (error, result) => {
+    if(error){
+      res.send({status : false , message: " Failed to connect to db"})
+    } else {
+      res.send({status: true , message:"Marked as Read"})
+    }
+  })
+})
+
 
 //Create the Records add zrc
 server.post("/api/zrc/add",[contributorMiddleware], (req, res) => {
@@ -1199,7 +1328,7 @@ const mysqlDateTime2= `${year2}-${month2.toString().padStart(2, "0")}-${day2.toS
 })
 
 server.get("/api/zrc/getbyserial/:serialno",(req,res) =>{
-
+  console.log("Get ZRC by serial called",req.params.serialno)
   let sql=`SELECT * FROM zrc_table WHERE serial= ${req.params.serialno};`
   db.query(sql,(error,result) => {
     if(error){
