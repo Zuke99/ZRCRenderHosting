@@ -13,8 +13,9 @@ server.use('/uploads',express.static('uploads'))
 const moment=require('moment-timezone')
 const dotenv=require('dotenv')
 server.use(express.static(__dirname))
-const cloudinary=require('cloudinary')
 
+const jwt = require("jsonwebtoken");
+const secretKey = "zrc";
 server.use(express.static(path.join(__dirname,'dist')))
 
 const db = mysql.createConnection({
@@ -35,15 +36,6 @@ const db = mysql.createConnection({
 // });
 
 
-const options = {
-  timeZone: 'Asia/Kolkata',
-  year: 'numeric',
-  month: '2-digit',
-  day: '2-digit',
-  hour: '2-digit',
-  minute: '2-digit',
-  second: '2-digit'
-};
 
 
 db.connect(function (error){
@@ -70,23 +62,89 @@ server.listen(8085,function check(error) {
 
 
 
-cloudinary.config({ 
-  cloud_name: 'dqnegca6p', 
-  api_key: '795363611355394', 
-  api_secret: 'ToXMzxQmx9RLDXuWoyS6HwbLo_s' 
-});
 
 dotenv.config({
   path:"./data/config.env",
 })
 
+const decodeToken = (token) => {
+  try {
+    // Verify and decode the token
+   // console.log("Received for Token decoding" , token)
+    const tokenValue= token.split(' ')[1]
+    const decoded = jwt.verify(tokenValue, secretKey); // Replace 'your_secret_key' with your actual secret key
+    
+    // The payload information is available in the 'decoded' object
+    const { username, role } = decoded;
+
+    // Return the payload information
+    return {
+      username,
+      role
+    };
+  } catch (error) {
+    // Token verification failed, handle the error
+    throw new Error('Invalid token');
+  }
+};
+
+// Middleware for 'MasterAdmin' role
+const masterAdminMiddleware = (req, res, next) => {
+  // Check if the user has the 'MasterAdmin' role
+  const token= req.headers.authorization
+  console.log("token value from headers",token)
+  const decodedToken = decodeToken(token)
+  const role=decodedToken.role;
+  console.log("role is " ,role)
+  if (role === 'MasterAdmin') {
+    next(); // Allow access to the route
+  } else {
+    res.status(403).json({ message: 'Access Denied' });
+  }
+};
+
+// Middleware for 'Contributor' role
+const contributorMiddleware = (req, res, next) => {
+  // Check if the user has the 'Contributor' role
+  const token= req.headers.authorization
+  console.log("token value from headers",token)
+  const decodedToken = decodeToken(token)
+  const role=decodedToken.role;
+  console.log("role is " ,role)
+  if (role === 'Contributor' || role ==='MasterAdmin') {
+    next(); // Allow access to the route
+  } else {
+    res.status(403).json({ message: 'Access Denied' });
+  }
+};
+
+// Middleware for 'User' role
+const userMiddleware = (req, res, next) => {
+  const token= req.headers.authorization
+  console.log("token value from headers",token)
+  const decodedToken = decodeToken(token)
+  const role=decodedToken.role;
+  console.log("role is " ,role)
+  // Check if the user has the 'User' role
+  if (role === 'User' || role === 'MasterAdmin' || role ==='Contributor') {
+    next(); // Allow access to the route
+  } else {
+    res.status(403).json({ message: 'Access Denied' });
+  }
+};
+
+
+
+
 //User Registration
 
-server.post("/api/zrc/register/registeruser",(req,res) => {
+server.post("/api/zrc/register/registeruser",[masterAdminMiddleware],(req,res) => {
   console.log("Register user Called")
   let userData={
+    name:req.body.name,
     username:req.body.username,
-    password:req.body.password
+    password:req.body.password,
+    role:req.body.role
   }
   let sql="INSERT INTO users SET?"
   db.query(sql,userData,(error, result) => {
@@ -98,10 +156,42 @@ server.post("/api/zrc/register/registeruser",(req,res) => {
   })
 })
 
+//get all users
+//Get all users
+server.get("/api/zrc/register/getuser/:username", (req, res) => {
+  console.log("Get all users called");
+  let sql = `SELECT * FROM users ;`;
+  db.query(sql, (error, result) => {
+    if (error) {
+      console.log("error getting usernames from db", error);
+    } else {
+      if (!result) {
+        res.send({ status: false, data: result });
+      } else {
+        res.send({ status: true, data: result });
+      }
+    }
+  });
+});
+
+server.delete("/api/zrc/user/delete/deleteuser/:serial",(req,res) => {
+  console.log("Delete Users Called")
+  let sql=`DELETE FROM users
+  WHERE serial = ${req.params.serial};`
+  db.query(sql, (error, result) =>{
+    if(error){
+      res.send({status : false , message : "Error"})
+    } else {
+      res.send({status : true , message : "Deleted User"})
+    }
+  })
+})
+
 //LOGIN API
 
 server.post("/api/zrc/login/loginuser",(req,res) => {
   console.log("Login Called")
+  console.log(req.body.username + " " + req.body.password)
   let userData={
     username:req.body.username,
     password:req.body.password
@@ -112,21 +202,35 @@ server.post("/api/zrc/login/loginuser",(req,res) => {
       console.log("error connecting to db for user login" , error)
     } else if (!result[0]) {
       console.log("no user with username ",req.body.username)
-      res.send({status : false , message : "No user with username " + req.body.username})
+      res.send({status : false , message : "nouser"})
     } else if(result[0].password != req.body.password){
+      console.log("wrong pass", result[0].password +" "+req.body.password)
       res.send({status : false , message : "Wrong password for user " + req.body.username})
      // res.send({data:result})
     }
     else {
       console.log("logged in")
-      res.send({status : true , message :"User Logged In Successfully", result})
+      const payload ={
+        userId: result[0].serial,
+        username: req.body.username,
+        role: result[0].role,
+        name: result[0].name
+      }
+          console.log("Payload= ",payload)
+          const options={
+              expiresIn : '5h'
+          }
+          const token = jwt.sign(payload, secretKey , options)
+          res.json({token : token})
     }
   })
 })
 
+
+
 //ADD MASTER LISt
 
-server.post("/api/zrc/master/addmaster",(req,res) => {
+server.post("/api/zrc/master/addmaster",[contributorMiddleware],(req,res) => {
   console.log("Register user Called")
   let userData={
     product_name:req.body.product_name,
@@ -177,7 +281,7 @@ server.get("/",(req,res)=>{
 })
 
 //add to IndentTable
-server.post("/api/zrc/addindent",(req,res)=>{
+server.post("/api/zrc/addindent",[contributorMiddleware],(req,res)=>{
   console.log("ADD Indent Table Called")
 
   console.log("from angular"+req.body.last_indent_date+" type of "+typeof(req.body.last_indent_date))
@@ -373,7 +477,7 @@ server.post("/api/zrc/addindent",(req,res)=>{
 })
 
 //Create the Records add zrc
-server.post("/api/zrc/add", (req, res) => {
+server.post("/api/zrc/add",[contributorMiddleware], (req, res) => {
   console.log("ZRC ADD Called")
 
   upload(req,res,(err)=>{
@@ -613,7 +717,7 @@ server.get("/api/zrc/product/:product_name", (req, res) => {
 });
 
 //GET BY PRODUCT NAME in Indent Reports
-server.get("/api/zrc/indentproduct/:product_name", (req, res) => {
+server.get("/api/zrc/indentproduct/:product_name",[contributorMiddleware], (req, res) => {
   const decodedParameter = decodeURIComponent(req.params.product_name);
 
  console.log("Get By Indents product Name called", decodedParameter)
@@ -629,7 +733,7 @@ server.get("/api/zrc/indentproduct/:product_name", (req, res) => {
 });
 
 //GET BY INDENT RANGE
-server.get("/api/zrc/indent/getindentrange",(req,res) => {
+server.get("/api/zrc/indent/getindentrange",[contributorMiddleware],(req,res) => {
   console.log("indent range function called "+ req.query.indent_date_from + " and "+  req.query.indent_date_upto)
   const datetime1 = req.query.indent_date_from;
   // Create a new Date object from the datetime string
@@ -686,7 +790,7 @@ server.get("/api/zrc/indent/getindentrange",(req,res) => {
 })
 
 //Update Indent Report checkbox
-server.put("/api/zrc/indentreport/status",(req,res) => {
+server.put("/api/zrc/indentreport/status",[contributorMiddleware],(req,res) => {
   console.log("Indent Report Checkbox Update Called")
   let sql=`UPDATE indents SET po_status = ${req.body.po_status} , supply_status = ${req.body.supply_status} WHERE serial = ${req.body.serial}`
   db.query(sql,(error,result) => {
@@ -699,7 +803,7 @@ server.put("/api/zrc/indentreport/status",(req,res) => {
 })
 
 //Update ZRC PO/Supply status
-server.put("/api/zrc/update/updatestatus/:serial",(req,res) => {
+server.put("/api/zrc/update/updatestatus/:serial",[contributorMiddleware],(req,res) => {
   console.log("UPDATE PO / SUPPLY IN ZRC CALLED")
   let sql=`UPDATE zrc_table SET po_status = ${req.body.po_status} , supply_status = ${req.body.supply_status} WHERE serial = ${req.params.serial}`
   db.query(sql, (error , result) => {
@@ -812,7 +916,7 @@ server.put("/api/zrc/balanceUpdate/:serial",(req,res)=>{
 
 
 //update
-server.put("/api/zrc/update/:serial", (req, res) => {
+server.put("/api/zrc/update/:serial",[contributorMiddleware], (req, res) => {
   console.log("API UPdating by serial")
 
 
@@ -986,7 +1090,7 @@ server.get("/api/zrc/searchvalues/:searchTerm",(req,res)=>{
 
 
 //For SearchBar in Indent Reports Page
-server.get("/api/zrc/indentsearchvalues/:searchTerm",(req,res)=>{
+server.get("/api/zrc/indentsearchvalues/:searchTerm",[contributorMiddleware],(req,res)=>{
   console.log("SEARCH NEW CALLED")
   const searchTerm=req.params.searchTerm;
 
@@ -1108,7 +1212,7 @@ server.get("/api/zrc/getbyserial/:serialno",(req,res) =>{
 
 
 //get zrc reports 
-server.get("/api/zrctable/:zrcfy",(req,res) => {
+server.get("/api/zrctable/:zrcfy",[userMiddleware],(req,res) => {
   //const decodedParameter = decodeURIComponent(req.params.zrc_fy);
   console.log("get all ZRC report from zrc_table called")
   let zrc_fy=req.params.zrcfy;
