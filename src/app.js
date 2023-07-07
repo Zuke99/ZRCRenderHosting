@@ -350,8 +350,6 @@ server.post("/api/zrc/indent/userindent", [userMiddleware], (req,res) => {
 
 
 })
-
-//add to IndentTable (ADMIN/CONTRIBUTOR)
 server.post("/api/zrc/addindent",[contributorMiddleware],(req,res)=>{
   console.log("ADD Indent Table Called")
 
@@ -444,6 +442,20 @@ server.post("/api/zrc/addindent",[contributorMiddleware],(req,res)=>{
 
 
 
+  const datetime7 = req.body.qty_expended_date;
+  // Create a new Date object from the datetime string
+  const dateObj7 = new Date(datetime7);
+  // Get the individual components of the date
+  const year7 = dateObj7.getFullYear();
+  const month7 = dateObj7.getMonth() + 1; // Months are zero-based, so add 1
+  const day7 = dateObj7.getDate();
+  // Format the DateTime string in MySQL format
+  const mysqlDateTime7 = `${year7}-${month7.toString().padStart(2, "0")}-${day7.toString().padStart(2, "0")} 00:00:00`;
+
+
+
+
+
     // const isoDate1=new Date(req.body.zrc_valid_from)
     // const mySQLDateString1=isoDate1.toJSON().slice(0,19).replace('T',' ');
 
@@ -493,7 +505,12 @@ server.post("/api/zrc/addindent",[contributorMiddleware],(req,res)=>{
     indents_sl:req.body.indents_sl,
     extra_remarks:req.body.extra_remarks,
     po_status:req.body.po_status,
-    supply_status:req.body.supply_status
+    supply_status:req.body.supply_status,
+    qty_expended_date:mysqlDateTime7,
+    qty_expended:req.body.qty_expended,
+    irpTextBox:req.body.irpTextBox,
+    qty_additional:req.body.qty_additional,
+    equal_substitute:req.body.equal_substitute
   }
   let sql;
   if(new_date.getYear()+1900 < 1100){
@@ -530,13 +547,265 @@ server.post("/api/zrc/addindent",[contributorMiddleware],(req,res)=>{
     indents_sl:req.body.indents_sl,
     extra_remarks:req.body.extra_remarks,
     po_status:req.body.po_status,
-    supply_status:req.body.supply_status
+    supply_status:req.body.supply_status,
+    qty_expended_date:mysqlDateTime7,
+    qty_expended:req.body.qty_expended,
+    irpTextBox:req.body.irpTextBox,
+    qty_additional:req.body.qty_additional,
+    equal_substitute:req.body.equal_substitute
    }
     
    console.log("null valid date by sql",new_date)
    sql="INSERT INTO indents SET ?"
   }else {
    sql="INSERT INTO indents SET ?";
+  }
+  db.query(sql,details,(error)=>{
+    if (error) {
+      res.send({ status: false, message: "Indent Table Failed" + error});
+    } else {
+      res.send({ status: true, message: "Indent created successfully" });
+    }
+  })
+})
+//Get Indents (USER) for Home Screen
+server.get("/api/zrc/indents/getuserindents/:userName",[userMiddleware],(req, res) => {
+  console.log("get Indents USer Called", req.params.userName)
+  let i=0;
+  let sql=`SELECT * FROM user_indents WHERE user_name = '${req.params.userName}' AND acknowledge= ${0}`
+  db.query(sql, (error, result) => {
+    if(error){
+      res.send({status : false, message : "error"})
+    } else {
+      res.send({status: true, data : result})
+    }
+  })
+})
+
+//GET ALL INDENTS FOR HOMESCREEN ADMIN AND CONTRIBUTOR
+server.get("/api/zrc/indents/getalluserindents",[contributorMiddleware],(req, res) => {
+  console.log("get Indents USer Called")
+  let i=0;
+  let sql=`SELECT * FROM user_indents WHERE approval_status = 'Pending'`
+  db.query(sql, (error, result) => {
+    if(error){
+      res.send({status : false, message : "error"})
+    } else {
+      res.send({status: true, data : result})
+    }
+  })
+})
+
+//Update to IndentTable (ADMIN/CONTRIBUTOR)
+server.put("/api/zrc/indent/updateindent/:serial",[contributorMiddleware],(req,res)=>{
+  console.log("UPdate Indent Table Called")
+
+  console.log("from angular"+req.body.last_indent_date+" type of "+typeof(req.body.last_indent_date))
+  new_date=new Date(req.body.last_indent_date)
+
+  const datetime1 = req.body.zrc_valid_from;
+  // Create a new Date object from the datetime string
+  const dateObj1 = new Date(datetime1);
+  // Get the individual components of the date
+  const year1 = dateObj1.getFullYear();
+  const month1 = dateObj1.getMonth() + 1; // Months are zero-based, so add 1
+  const day1 = dateObj1.getDate();
+  // Format the DateTime string in MySQL format
+  const mysqlDateTime1 = `${year1}-${month1.toString().padStart(2, "0")}-${day1.toString().padStart(2, "0")} 00:00:00`;
+
+
+
+
+
+
+  const datetime2 = req.body.zrc_valid_upto;
+  // Create a new Date object from the datetime string
+  const dateObj2 = new Date(datetime2);
+  // Get the individual components of the date
+  const year2 = dateObj2.getFullYear();
+  const month2 = dateObj2.getMonth() + 1; // Months are zero-based, so add 1
+  const day2 = dateObj2.getDate();
+  // Format the DateTime string in MySQL format
+  const mysqlDateTime2 = `${year2}-${month2.toString().padStart(2, "0")}-${day2.toString().padStart(2, "0")} 00:00:00`;
+
+
+
+
+
+  const datetime3 = req.body.qty_indented_supl_date;
+  // Create a new Date object from the datetime string
+  const dateObj3 = new Date(datetime3);
+  // Get the individual components of the date
+  const year3 = dateObj3.getFullYear();
+  const month3 = dateObj3.getMonth() + 1; // Months are zero-based, so add 1
+  const day3 = dateObj3.getDate();
+  // Format the DateTime string in MySQL format
+  const mysqlDateTime3 = `${year3}-${month3.toString().padStart(2, "0")}-${day3.toString().padStart(2, "0")} 00:00:00`;
+
+
+
+
+
+  const datetime4 = req.body.qty_recd_supl_date;
+  // Create a new Date object from the datetime string
+  const dateObj4 = new Date(datetime4);
+  // Get the individual components of the date
+  const year4 = dateObj4.getFullYear();
+  const month4 = dateObj4.getMonth() + 1; // Months are zero-based, so add 1
+  const day4 = dateObj4.getDate();
+  // Format the DateTime string in MySQL format
+  const mysqlDateTime4 = `${year4}-${month4.toString().padStart(2, "0")}-${day4.toString().padStart(2, "0")} 00:00:00`;
+
+
+
+
+
+
+  const datetime5 = req.body.last_indent_date;
+  // Create a new Date object from the datetime string
+  const dateObj5 = new Date(datetime5);
+  // Get the individual components of the date
+  const year5 = dateObj5.getFullYear();
+  const month5 = dateObj5.getMonth() + 1; // Months are zero-based, so add 1
+  const day5 = dateObj5.getDate();
+  // Format the DateTime string in MySQL format
+  const mysqlDateTime5 = `${year5}-${month5.toString().padStart(2, "0")}-${day5.toString().padStart(2, "0")} 00:00:00`;
+
+
+
+
+
+  const datetime6 = req.body.date_of_indent;
+  // Create a new Date object from the datetime string
+  const dateObj6 = new Date(datetime6);
+  // Get the individual components of the date
+  const year6 = dateObj6.getFullYear();
+  const month6 = dateObj6.getMonth() + 1; // Months are zero-based, so add 1
+  const day6 = dateObj6.getDate();
+  // Format the DateTime string in MySQL format
+  const mysqlDateTime6 = `${year6}-${month6.toString().padStart(2, "0")}-${day6.toString().padStart(2, "0")} 00:00:00`;
+
+
+
+
+
+  const datetime7 = req.body.qty_expended_date;
+  // Create a new Date object from the datetime string
+  const dateObj7 = new Date(datetime7);
+  // Get the individual components of the date
+  const year7 = dateObj7.getFullYear();
+  const month7 = dateObj7.getMonth() + 1; // Months are zero-based, so add 1
+  const day7 = dateObj7.getDate();
+  // Format the DateTime string in MySQL format
+  const mysqlDateTime7 = `${year7}-${month7.toString().padStart(2, "0")}-${day7.toString().padStart(2, "0")} 00:00:00`;
+
+
+
+
+
+    // const isoDate1=new Date(req.body.zrc_valid_from)
+    // const mySQLDateString1=isoDate1.toJSON().slice(0,19).replace('T',' ');
+
+    // const isoDate2=new Date(req.body.zrc_valid_upto)
+    // const mySQLDateString2=isoDate2.toJSON().slice(0,19).replace('T',' ');
+
+    // const isoDate3=new Date(req.body.qty_indented_supl_date)
+    // const mySQLDateString3=isoDate3.toJSON().slice(0,19).replace('T',' ');
+
+    // const isoDate4=new Date(req.body.qty_recd_supl_date)
+    // const mySQLDateString4=isoDate4.toJSON().slice(0,19).replace('T',' ');
+
+    // const isoDate5=new Date(req.body.last_indent_date)
+    // const mySQLDateString5=isoDate5.toJSON().slice(0,19).replace('T',' ');
+
+    // const isoDate6=new Date(req.body.date_of_indent)
+    // const mySQLDateString6=isoDate6.toJSON().slice(0,19).replace('T',' ');
+    
+
+    console.log("after conversion",mysqlDateTime5)
+
+  let details={
+    ph_number:req.body.ph_number,
+    product_name:req.body.product_name,
+    balance_available:req.body.balance_available,
+    qty_required:req.body.qty_required,
+    zrc_number:req.body.zrc_number,
+    zrc_valid_from:mysqlDateTime1,
+    zrc_valid_upto:mysqlDateTime2,
+    indent_ami:req.body.indent_ami,
+    qty_annual_indent:req.body.qty_annual_indent,
+    qty_pcmd:req.body.qty_pcmd,
+    qty_indented:req.body.qty_indented,
+    qty_recd:req.body.qty_recd,
+    qty_indented_supl:req.body.qty_indented_supl,
+    qty_recd_supl:req.body.qty_recd_supl,
+    qty_indented_supl_date:mysqlDateTime3,
+    qty_recd_supl_date:mysqlDateTime4,
+    balance_hand:req.body.balance_hand,
+    fresh_stock_date:req.body.fresh_stock_date,
+    remarks:req.body.remarks,
+    last_indent_date:mysqlDateTime5,
+    qty_last_indent:req.body.qty_last_indent,
+    zrc_serial:req.body.zrc_serial,
+    date_of_indent:mysqlDateTime6,
+    zrc_fy:req.body.zrc_fy,
+    indents_sl:req.body.indents_sl,
+    extra_remarks:req.body.extra_remarks,
+    po_status:req.body.po_status,
+    supply_status:req.body.supply_status,
+    qty_expended_date:mysqlDateTime7,
+    qty_expended:req.body.qty_expended,
+    irpTextBox:req.body.irpTextBox,
+    qty_additional:req.body.qty_additional,
+    equal_substitute:req.body.equal_substitute
+  }
+  let sql;
+  if(new_date.getYear()+1900 < 1100){
+    console.log("empty date" )
+
+    console.log("new Date",new_date)
+    new_date=null
+   
+   details={
+    ph_number:req.body.ph_number,
+    product_name:req.body.product_name,
+    balance_available:req.body.balance_available,
+    qty_required:req.body.qty_required,
+    zrc_number:req.body.zrc_number,
+    zrc_valid_from:mysqlDateTime1,
+    zrc_valid_upto:mysqlDateTime2,
+    indent_ami:req.body.indent_ami,
+    qty_annual_indent:req.body.qty_annual_indent,
+    qty_pcmd:req.body.qty_pcmd,
+    qty_indented:req.body.qty_indented,
+    qty_recd:req.body.qty_recd,
+    qty_indented_supl:req.body.qty_indented_supl,
+    qty_recd_supl:req.body.qty_recd_supl,
+    qty_indented_supl_date:mysqlDateTime3,
+    qty_recd_supl_date:mysqlDateTime4,
+    balance_hand:req.body.balance_hand,
+    fresh_stock_date:req.body.fresh_stock_date,
+    remarks:req.body.remarks,
+    last_indent_date:new_date,
+    qty_last_indent:req.body.qty_last_indent,
+    zrc_serial:req.body.zrc_serial,
+    date_of_indent:mysqlDateTime6,
+    zrc_fy:req.body.zrc_fy,
+    indents_sl:req.body.indents_sl,
+    extra_remarks:req.body.extra_remarks,
+    po_status:req.body.po_status,
+    supply_status:req.body.supply_status,
+    qty_expended_date:mysqlDateTime7,
+    qty_expended:req.body.qty_expended,
+    irpTextBox:req.body.irpTextBox,
+    qty_additional:req.body.qty_additional,
+    equal_substitute:req.body.equal_substitute
+   }
+    
+   console.log("null valid date by sql",new_date)
+   sql="UPDATE indents SET ? WHERE serial = " + req.params.serial
+  }else {
+   sql="UPDATE indents SET ? WHERE serial = " + req.params.serial;
   }
   db.query(sql,details,(error)=>{
     if (error) {
@@ -777,7 +1046,7 @@ server.get("/api/zrc/indents/getindentbyserial/:serial",(req,res) => {
   let sql=`SELECT * FROM indents WHERE serial = ${req.params.serial}`
   db.query(sql,(error,result) => {
     if(error){
-      console.log("error getting indent by serial details from db", error)
+      res.send({status : true , message : "error" , data : result})
     } else {
       res.send({status : true, data : result})
     }
@@ -1205,8 +1474,14 @@ console.log("after conversion" ,mysqlDateTime3)
 
 //For Search Bar in Home page
 server.get("/api/zrc/searchvalues/:searchTerm",(req,res)=>{
+  
+  const decodedParameter = decodeURIComponent(req.params.searchTerm);
+
+  console.log("Get By product Name called", decodedParameter)
+  var product_name = decodedParameter;
   console.log("SEARCH NEW CALLED")
-  const searchTerm=req.params.searchTerm;
+  const searchTerm=product_name;
+
 
   console.log("term"+searchTerm);
   const query=`SELECT DISTINCT ph_number,product_name FROM zrc_table WHERE CAST(ph_number AS CHAR) LIKE '%${searchTerm}%' OR product_name LIKE '%${searchTerm}%' LIMIT 10;`
