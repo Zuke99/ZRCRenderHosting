@@ -18,20 +18,20 @@ const jwt = require("jsonwebtoken");
 const secretKey = "zrc";
 server.use(express.static(path.join(__dirname, "dist")));
 
-// const db = mysql.createConnection({
-//   host     : 'sql12.freemysqlhosting.net',
-//   user     : 'sql12628553',
-//   password : 'zLJ6cKrMxy',
-//   database : 'sql12628553',
-// });
-
 const db = mysql.createConnection({
-  host: "localhost",
-  user: "root",
-  password: "password",
-  database: "sql12628553",
-  port: 3307,
+  host     : 'sql12.freemysqlhosting.net',
+  user     : 'sql12628553',
+  password : 'zLJ6cKrMxy',
+  database : 'sql12628553',
 });
+
+// const db = mysql.createConnection({
+//   host: "localhost",
+//   user: "root",
+//   password: "password",
+//   database: "sql12628553",
+//   port: 3307,
+// });
 
 db.connect(function (error) {
   if (error) {
