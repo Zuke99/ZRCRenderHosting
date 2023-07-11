@@ -17,20 +17,20 @@ const jwt = require("jsonwebtoken");
 const secretKey = "zrc";
 server.use(express.static(path.join(__dirname, "dist")));
 
-const db = mysql.createConnection({
-  host     : 'sql12.freemysqlhosting.net',
-  user     : 'sql12628553',
-  password : 'zLJ6cKrMxy',
-  database : 'sql12628553',
-});
-
 // const db = mysql.createConnection({
-//   host: "localhost",
-//   user: "root",
-//   password: "password",
-//   database: "sql12628553",
-//   port: 3307,
+//   host     : 'sql12.freemysqlhosting.net',
+//   user     : 'sql12628553',
+//   password : 'zLJ6cKrMxy',
+//   database : 'sql12628553',
 // });
+
+const db = mysql.createConnection({
+  host: "localhost",
+  user: "root",
+  password: "password",
+  database: "sql12628553",
+  port: 3307,
+});
 
 db.connect(function (error) {
   if (error) {
@@ -67,8 +67,10 @@ function mysql_real_escape_string (str) {
               return "\\n";
           case "\r":
               return "\\r";
-          case "\"":
+          
           case "'":
+              return "''";
+            case "\"":
           case "\\":
           case "%":
               return "\\"+char; // prepends a backslash to backslash, percent,
@@ -1144,7 +1146,7 @@ server.get("/api/zrc/product/:product_name", (req, res) => {
   console.log("Get By product Name called", decodedParameter);
   var product_name = mysql_real_escape_string(decodedParameter);
 
-  var sql = `SELECT * FROM zrc_table WHERE product_name= ${product_name}  `;
+  var sql = `SELECT * FROM zrc_table WHERE product_name= '${product_name}'  `;
   db.query(sql, function (error, result) {
     if (error) {
       res.send({status: false, message :"Error Connecting to DB(GET BY PRODUCT NAME)", error});
