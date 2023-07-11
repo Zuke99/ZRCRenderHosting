@@ -13,7 +13,6 @@ server.use("/uploads", express.static("uploads"));
 const moment = require("moment-timezone");
 const dotenv = require("dotenv");
 server.use(express.static(__dirname));
-
 const jwt = require("jsonwebtoken");
 const secretKey = "zrc";
 server.use(express.static(path.join(__dirname, "dist")));
@@ -52,6 +51,33 @@ server.listen(8085, function check(error) {
 dotenv.config({
   path: "./data/config.env",
 });
+
+function mysql_real_escape_string (str) {
+  return str.replace(/[\0\x08\x09\x1a\n\r"'\\\%]/g, function (char) {
+      switch (char) {
+          case "\0":
+              return "\\0";
+          case "\x08":
+              return "\\b";
+          case "\x09":
+              return "\\t";
+          case "\x1a":
+              return "\\z";
+          case "\n":
+              return "\\n";
+          case "\r":
+              return "\\r";
+          case "\"":
+          case "'":
+          case "\\":
+          case "%":
+              return "\\"+char; // prepends a backslash to backslash, percent,
+                                // and double/single quotes
+          default:
+              return char;
+      }
+  });
+}
 
 const decodeToken = (token) => {
   try {
@@ -1114,10 +1140,11 @@ server.get("/api/zrc/:ph_number", (req, res) => {
 //GET BY PRODUCT NAME in HOME
 server.get("/api/zrc/product/:product_name", (req, res) => {
   const decodedParameter = decodeURIComponent(req.params.product_name);
-
+  
   console.log("Get By product Name called", decodedParameter);
-  var product_name = decodedParameter;
-  var sql = "SELECT * FROM zrc_table WHERE product_name='" + product_name + "'";
+  var product_name = mysql_real_escape_string(decodedParameter);
+
+  var sql = `SELECT * FROM zrc_table WHERE product_name= ${product_name}  `;
   db.query(sql, function (error, result) {
     if (error) {
       res.send({status: false, message :"Error Connecting to DB(GET BY PRODUCT NAME)", error});
@@ -1135,7 +1162,7 @@ server.get(
     const decodedParameter = decodeURIComponent(req.params.product_name);
 
     console.log("Get By Indents product Name called", decodedParameter);
-    var product_name = decodedParameter;
+    var product_name = mysql_real_escape_string(decodedParameter);
     var sql =
       "SELECT * FROM indents WHERE product_name='" +
       product_name +
@@ -1499,11 +1526,13 @@ server.get("/api/zrc/searchvalues/:searchTerm", (req, res) => {
   console.log("Get By product Name called", decodedParameter);
   var product_name = decodedParameter;
   console.log("SEARCH NEW CALLED");
-  const searchTerm = product_name;
+  const searchTerm = mysql_real_escape_string(product_name);
 
   console.log("term" + searchTerm);
   const query = `SELECT DISTINCT ph_number,product_name FROM zrc_table WHERE CAST(ph_number AS CHAR) LIKE '%${searchTerm}%' OR product_name LIKE '%${searchTerm}%' LIMIT 10;`;
-  db.query(query, (err, results) => {
+  const search = `%${searchTerm}%`
+ 
+  db.query(query,[search,search], (err, results) => {
     if (err) throw err;
     console.log("success");
     res.json(results);
@@ -1516,11 +1545,12 @@ server.get(
   [contributorMiddleware],
   (req, res) => {
     console.log("SEARCH NEW CALLED");
-    const searchTerm = req.params.searchTerm;
-
+    const search = decodeURIComponent(req.params.searchTerm);
+    const searchTerm=mysql_real_escape_string(search)
     console.log("term" + searchTerm);
     const query = `SELECT DISTINCT ph_number,product_name FROM indents WHERE CAST(ph_number AS CHAR) LIKE '%${searchTerm}%' OR product_name LIKE '%${searchTerm}%' ;`;
-    db.query(query, (err, results) => {
+    //const search = `%${searchTerm}%`
+    db.query(query,[search, search], (err, results) => {
       if (err) throw err;
       console.log("success");
       res.json(results);
@@ -1544,7 +1574,8 @@ server.get("/api/zrc/indent/getindentby/zrcserial/:zrcserial", (req, res) => {
 //Search Suggestion in ADD ZRC
 server.get("/api/zrc/master/searchvalues/:searchTerm", (req, res) => {
   console.log("Master SEARCH NEW CALLED");
-  const searchTerm = req.params.searchTerm;
+  const search =  decodedParameter = decodeURIComponent(req.params.searchTerm);
+  const searchTerm = mysql_real_escape_string(search);
 
   console.log("term" + searchTerm);
   const query = `SELECT ph_number, product_name
