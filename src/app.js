@@ -868,7 +868,7 @@ server.get(
 //UPDATING USER INDENT STATUS
 server.put("/api/zrc/userindent/updatestatus/:serial", (req, res) => {
   console.log("Update status of user Indent Called");
-  let sql = `UPDATE user_indents SET approval_status = '${req.body.approval_status}' , executive = '${req.body.executive}'
+  let sql = `UPDATE user_indents SET approval_status = '${req.body.approval_status}' , reject_remarks = '${req.body.reject_remarks}' , executive = '${req.body.executive}'
   WHERE serial = ${req.params.serial}`;
   db.query(sql, (error, result) => {
     if (error) {
@@ -1157,6 +1157,31 @@ server.get("/api/zrc/product/:product_name", (req, res) => {
   });
 });
 
+//GET BY PRODUCT NAME IN INDENT REPORTS (USER)
+server.post(
+  "/api/zrc/userindentproduct/:product_name",
+  [userMiddleware],
+  (req, res) => {
+    const decodedParameter = decodeURIComponent(req.params.product_name);
+
+    console.log("Get By User Indents product Name called", decodedParameter);
+    var product_name = mysql_real_escape_string(decodedParameter);
+    // var sql =
+    //   "SELECT * FROM user_indents WHERE  AND product_name='" +
+    //   product_name +
+    //   "' ORDER BY date_of_indent DESC AND user_name = '"+ req.body.user_name+"'";
+
+      var sql=`SELECT * FROM user_indents WHERE product_name =  '${product_name}' AND user_name= '${req.body.user_name}' ORDER BY date_of_indent DESC `
+    db.query(sql, function (error, result) {
+      if (error) {
+        console.log("Error Connecting to DB(GET BY PRODUCT NAME)", error);
+      } else {
+        res.send({ status: true, data: result });
+      }
+    });
+  }
+);
+
 //GET BY PRODUCT NAME in Indent Reports
 server.get(
   "/api/zrc/indentproduct/:product_name",
@@ -1179,6 +1204,45 @@ server.get(
     });
   }
 );
+
+// GET BY USER INDENT RANGE
+
+server.post("/api/zrc/indent/usergetindentrange", [userMiddleware], (req, res ) => {
+  console.log("GET USER INDENT RANGE CALLED" )
+  const datetime1 = req.body.user_indent_date_from;
+  // Create a new Date object from the datetime string
+  const dateObj1 = new Date(datetime1);
+  // Get the individual components of the date
+  const year1 = dateObj1.getFullYear();
+  const month1 = dateObj1.getMonth() + 1; // Months are zero-based, so add 1
+  const day1 = dateObj1.getDate();
+  // Format the DateTime string in MySQL format
+  const mysqlDateTime1 = `${year1}-${month1
+    .toString()
+    .padStart(2, "0")}-${day1.toString().padStart(2, "0")} 00:00:00`;
+
+  const datetime2 = req.body.user_indent_date_upto;
+  // Create a new Date object from the datetime string
+  const dateObj2 = new Date(datetime2);
+  // Get the individual components of the date
+  const year2 = dateObj2.getFullYear();
+  const month2 = dateObj2.getMonth() + 1; // Months are zero-based, so add 1
+  const day2 = dateObj2.getDate();
+  // Format the DateTime string in MySQL format
+  const mysqlDateTime2 = `${year2}-${month2
+    .toString()
+    .padStart(2, "0")}-${day2.toString().padStart(2, "0")} 00:00:00`;
+
+    sql = `SELECT * FROM user_indents WHERE date_of_indent >= '${mysqlDateTime1}' AND date_of_indent <= '${mysqlDateTime2}' AND user_name = '${req.body.user_name}'`
+    db.query(sql, (error, result) => {
+      if (error) {
+        console.log("error getting indent range from db", error);
+      } else {
+        res.send({ status: true, data: result });
+      }
+    });
+
+})
 
 //GET BY INDENT RANGE
 server.get(
@@ -1542,6 +1606,24 @@ server.get("/api/zrc/searchvalues/:searchTerm", (req, res) => {
   });
 });
 
+//USER INDENT REPORTS SEARCH ENGINE
+server.post(
+  "/api/zrc/userindentsearchvalues/:searchTerm",
+  [userMiddleware],
+  (req, res) => {
+    console.log("SEARCH USER REPORT INDENT");
+    const search = decodeURIComponent(req.params.searchTerm);
+    const searchTerm=mysql_real_escape_string(search)
+    console.log("term and user = " + searchTerm + " username " + req.body.user_name);
+    const query = `SELECT DISTINCT ph_number,product_name FROM user_indents WHERE  CAST(ph_number AS CHAR) LIKE '%${searchTerm}%' OR product_name LIKE '%${searchTerm}%' AND user_name = '${req.body.user_name}' ;`;
+    //const search = `%${searchTerm}%`
+    db.query(query,[search, search], (err, results) => {
+      if (err) throw err;
+      console.log("success");
+      res.json(results);
+    });
+  }
+);
 //For SearchBar in Indent Reports Page
 server.get(
   "/api/zrc/indentsearchvalues/:searchTerm",
