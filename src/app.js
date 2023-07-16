@@ -89,12 +89,13 @@ const decodeToken = (token) => {
     const decoded = jwt.verify(tokenValue, secretKey); // Replace 'your_secret_key' with your actual secret key
 
     // The payload information is available in the 'decoded' object
-    const { username, role } = decoded;
+    const { username, role ,serial} = decoded;
 
     // Return the payload information
     return {
       username,
       role,
+      serial
     };
   } catch (error) {
     // Token verification failed, handle the error
@@ -229,7 +230,7 @@ server.post("/api/zrc/login/loginuser", (req, res) => {
     } else {
       console.log("logged in");
       const payload = {
-        userId: result[0].serial,
+        serial: result[0].serial,
         username: req.body.username,
         role: result[0].role,
         name: result[0].name,
@@ -1170,8 +1171,12 @@ server.post(
     //   "SELECT * FROM user_indents WHERE  AND product_name='" +
     //   product_name +
     //   "' ORDER BY date_of_indent DESC AND user_name = '"+ req.body.user_name+"'";
-
-      var sql=`SELECT * FROM user_indents WHERE product_name =  '${product_name}' AND user_name= '${req.body.user_name}' ORDER BY date_of_indent DESC `
+    var sql="";
+    if(req.body.masterReq){
+      sql=`SELECT * FROM user_indents WHERE product_name =  '${product_name}' ORDER BY date_of_indent DESC `
+    } else {
+     sql=`SELECT * FROM user_indents WHERE product_name =  '${product_name}' AND user_name= '${req.body.user_name}' ORDER BY date_of_indent DESC `
+    }
     db.query(sql, function (error, result) {
       if (error) {
         console.log("Error Connecting to DB(GET BY PRODUCT NAME)", error);
@@ -1309,6 +1314,43 @@ server.get(
   }
 );
 
+//GetAllUserIndent Range
+  server.post("/api/zrc/userindent/getalluserindentrange",(req,res) => {
+    console.log("Get All user Indents range called")
+
+    const datetime1 = req.body.indent_date_from;
+    // Create a new Date object from the datetime string
+    const dateObj1 = new Date(datetime1);
+    // Get the individual components of the date
+    const year1 = dateObj1.getFullYear();
+    const month1 = dateObj1.getMonth() + 1; // Months are zero-based, so add 1
+    const day1 = dateObj1.getDate();
+    // Format the DateTime string in MySQL format
+    const mysqlDateTime1 = `${year1}-${month1
+      .toString()
+      .padStart(2, "0")}-${day1.toString().padStart(2, "0")} 00:00:00`;
+
+    const datetime2 = req.body.indent_date_upto;
+    // Create a new Date object from the datetime string
+    const dateObj2 = new Date(datetime2);
+    // Get the individual components of the date
+    const year2 = dateObj2.getFullYear();
+    const month2 = dateObj2.getMonth() + 1; // Months are zero-based, so add 1
+    const day2 = dateObj2.getDate();
+    // Format the DateTime string in MySQL format
+    const mysqlDateTime2 = `${year2}-${month2
+      .toString()
+      .padStart(2, "0")}-${day2.toString().padStart(2, "0")} 00:00:00`;
+
+      sql = `SELECT * FROM user_indents WHERE date_of_indent >= '${mysqlDateTime1}' AND date_of_indent <= '${mysqlDateTime2}'`;
+      db.query(sql, (error, result) => {
+        if (error) {
+          res.send({status : false , message :"error getting all user indent range from db", error});
+        } else {
+          res.send({ status: true, data: result });
+        }
+      });
+  })
 //Update Indent Report checkbox
 server.put(
   "/api/zrc/indentreport/status",
@@ -1615,7 +1657,14 @@ server.post(
     const search = decodeURIComponent(req.params.searchTerm);
     const searchTerm=mysql_real_escape_string(search)
     console.log("term and user = " + searchTerm + " username " + req.body.user_name);
-    const query = `SELECT DISTINCT ph_number,product_name FROM user_indents WHERE  CAST(ph_number AS CHAR) LIKE '%${searchTerm}%' OR product_name LIKE '%${searchTerm}%' AND user_name = '${req.body.user_name}' ;`;
+    let query="";
+    if(req.body.masterReq){
+      console.log("MasterReq")
+      query=`SELECT DISTINCT ph_number,product_name FROM user_indents WHERE  CAST(ph_number AS CHAR) LIKE '%${searchTerm}%' OR product_name LIKE '%${searchTerm}%'`;
+    } else {
+       query = `SELECT DISTINCT ph_number,product_name FROM user_indents WHERE  CAST(ph_number AS CHAR) LIKE '%${searchTerm}%' OR product_name LIKE '%${searchTerm}%' AND user_name = '${req.body.user_name}' ;`;
+    }
+   
     //const search = `%${searchTerm}%`
     db.query(query,[search, search], (err, results) => {
       if (err) throw err;
@@ -1787,6 +1836,50 @@ server.get("/api/zrctable/:zrcfy", [userMiddleware], (req, res) => {
     }
   });
 });
+
+//GET USER CREDENTIALS
+server.get("/api/zrc/user/usercredentials/:serial",(req, res) => {
+  console.log("Getting UserCredentials Called",req.params.serial);
+  let sql=`SELECT * FROM users WHERE serial = ${req.params.serial}`;
+  db.query(sql,(error,result) => {
+    if(error){
+      res.send({status : false})
+    } else {
+      res.send({status : true , data :result})
+    }
+  })
+})
+
+//CHANGE PASSWORD
+server.put("/api/zrc/user/update/usercredentails/:serial",(req, res) => {
+  console.log("UPDATE PASSWORD CALLED")
+  let sql=`UPDATE users SET security_question = '${req.body.security_question}' , security_answer = '${req.body.security_answer}' , password= '${req.body.password}'  WHERE serial = ${req.params.serial}`
+  db.query(sql ,(error, result) => {
+    if(error){
+      res.send({status : false , data : result , message : error})
+    } else {
+      res.send({status : true , data : result})
+    }
+  })
+})
+
+//GET USERNAMES
+server.get("/api/zrc/users/username/:username",(req,res) => {
+  console.log("GET ALL USERNAMES CALLED")
+  let sql=`SELECT * FROM users WHERE username = '${req.params.username}'`
+  db.query(sql,(error,result) => {
+    if(error){
+      res.send({ status:false , message: error, data : result})
+    } 
+    // else if(result){
+
+    // } 
+    
+    else {
+      res.send({status : true, data : result})
+    }
+  })
+})
 
 server.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "dist/index.html"));
