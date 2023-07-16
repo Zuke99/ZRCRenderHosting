@@ -358,6 +358,7 @@ server.post("/api/zrc/indent/userindent", [userMiddleware], (req, res) => {
     zrc_fy: req.body.zrc_fy,
     acknowledge: req.body.acknowledge,
     fy: req.body.fy,
+    irpTextBox:req.body.irpTextBox
   };
   let sql = "INSERT INTO user_indents SET ?";
   db.query(sql, details, (error, result) => {
