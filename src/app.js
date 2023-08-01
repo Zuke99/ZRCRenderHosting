@@ -237,7 +237,7 @@ server.post("/api/zrc/login/loginuser", (req, res) => {
       };
       console.log("Payload= ", payload);
       const options = {
-        expiresIn: "5h",
+        expiresIn: "7h",
       };
       const token = jwt.sign(payload, secretKey, options);
       res.json({ token: token });
