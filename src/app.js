@@ -1489,7 +1489,7 @@ server.put("/api/zrc/balanceUpdate/:serial", (req, res) => {
 
 //update
 server.put("/api/zrc/update/:serial", [contributorMiddleware], (req, res) => {
-  console.log("API UPdating by serial");
+  console.log("ZRC UPdating by serial");
 
   const datetime1 = req.body.zrc_date;
   // Create a new Date object from the datetime string
@@ -1617,6 +1617,8 @@ server.put("/api/zrc/update/:serial", [contributorMiddleware], (req, res) => {
     mysqlDateTime3 +
     "',drive_file='" +
     req.body.drive_file +
+    "',remarks='"+
+    req.body.remarks +
     "'  WHERE serial=" +
     req.params.serial;
 
