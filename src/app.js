@@ -17,20 +17,20 @@ const jwt = require("jsonwebtoken");
 const secretKey = "zrc";
 server.use(express.static(path.join(__dirname, "dist")));
 
-const db = mysql.createConnection({
-  host     : 'sql12.freemysqlhosting.net',
-  user     : 'sql12628553',
-  password : 'zLJ6cKrMxy',
-  database : 'sql12628553',
-});
-
 // const db = mysql.createConnection({
-//   host: "localhost",
-//   user: "root",
-//   password: "password",
-//   database: "sql12628553",
-//   port: 3307,
+//   host     : 'sql12.freemysqlhosting.net',
+//   user     : 'sql12628553',
+//   password : 'zLJ6cKrMxy',
+//   database : 'sql12628553',
 // });
+
+const db = mysql.createConnection({
+  host: "localhost",
+  user: "root",
+  password: "password",
+  database: "sql12628553",
+  port: 3307,
+});
 
 db.connect(function (error) {
   if (error) {
@@ -519,6 +519,7 @@ server.post("/api/zrc/addindent", [contributorMiddleware], (req, res) => {
     qty_additional: req.body.qty_additional,
     equal_substitute: req.body.equal_substitute,
     fy: req.body.fy,
+    supplier_name : req.body.supplier_name
   };
   //also add to lower bodyData
   let sql;
@@ -563,6 +564,7 @@ server.post("/api/zrc/addindent", [contributorMiddleware], (req, res) => {
       qty_additional: req.body.qty_additional,
       equal_substitute: req.body.equal_substitute,
       fy: req.body.fy,
+      supplier_name : req.body.supplier_name
     };
 
     console.log("null valid date by sql", new_date);
