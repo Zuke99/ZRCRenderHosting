@@ -23,6 +23,7 @@ const db = mysql.createConnection({
   password : 'zLJ6cKrMxy',
   database : 'sql12628553',
 });
+console.log("ZRC APP");
 
 // const db = mysql.createConnection({
 //   host: "localhost",
