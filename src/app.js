@@ -167,7 +167,7 @@ server.get('/ping', (req, res) => {
 function pingApplication() {
   const options = {
     hostname: 'zrcrenderhosting.onrender.com', // Replace with your application's domain or IP address
-    port: 80, // Specify the port your application is running on (usually 80 for HTTP, 443 for HTTPS)
+    port: 8085, // Specify the port your application is running on (usually 80 for HTTP, 443 for HTTPS)
     path: '/ping', // Specify the ping route
     method: 'GET'
   };
