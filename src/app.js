@@ -49,6 +49,14 @@ server.listen(8085, function check(error) {
   }
 });
 
+
+setInterval(() => {
+  db.query('SELECT 1', (error, results, fields) => {
+    if (error) throw error;
+    console.log('Keep-alive query executed successfully');
+  });
+}, 5 * 60 * 1000); // 5 minutes in milliseconds
+
 dotenv.config({
   path: "./data/config.env",
 });
