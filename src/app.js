@@ -50,12 +50,13 @@ server.listen(8085, function check(error) {
 });
 
 
-setInterval(() => {
-  db.query('SELECT 1', (error, results, fields) => {
-    if (error) throw error;
-    console.log('Keep-alive query executed successfully');
-  });
-}, 5 * 60 * 1000); // 5 minutes in milliseconds
+// setInterval(() => {
+//   db.query('SELECT 1', (error, results, fields) => {
+//     if (error) throw error;
+//     console.log('Keep-alive query executed successfully');
+//   });
+// }, 5 * 60 * 1000); // 5 minutes in milliseconds
+setInterval(pingApplication, 5 * 60 * 1000);
 
 dotenv.config({
   path: "./data/config.env",
@@ -157,6 +158,29 @@ const userMiddleware = (req, res, next) => {
     res.status(403).json({ message: "Access Denied" });
   }
 };
+
+server.get('/ping', (req, res) => {
+  res.status(200).send('Ping successful');
+});
+
+function pingApplication() {
+  const options = {
+    hostname: 'https://zrcrenderhosting.onrender.com', // Replace with your application's domain or IP address
+    port: 80, // Specify the port your application is running on (usually 80 for HTTP, 443 for HTTPS)
+    path: '/ping', // Specify the ping route
+    method: 'GET'
+  };
+
+  const req = https.request(options, (res) => {
+    console.log(`Ping response: ${res.statusCode}`);
+  });
+
+  req.on('error', (error) => {
+    console.error('Error pinging application:', error);
+  });
+
+  req.end();
+}
 
 //User Registration
 
