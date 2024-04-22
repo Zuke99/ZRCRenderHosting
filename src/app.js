@@ -16,6 +16,7 @@ server.use(express.static(__dirname));
 const jwt = require("jsonwebtoken");
 const secretKey = "zrc";
 server.use(express.static(path.join(__dirname, "dist")));
+const https = require('https');
 
 const db = mysql.createConnection({
   host     : 'sql12.freemysqlhosting.net',
